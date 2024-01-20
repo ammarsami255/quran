@@ -5,7 +5,24 @@ let audio = document.querySelector('.quranPlayer'),
     prev = document.querySelector('.prev'),
     play = document.querySelector('.play');
 
+    document.addEventListener("DOMContentLoaded", function() {
+        var body = document.body;
+        var button = document.querySelector(".quran_view_pdf");
+
+        button.addEventListener("mouseover", function() {
+            body.style.backgroundColor = "#1e1e1e";
+        });
+
+        button.addEventListener("mouseout", function() {
+            body.style.backgroundColor = "#ffffff";
+        });
+    });
+
 getSurahs();
+function gotoview(){
+    window.location.href="https://ammarsami255.github.io/quran_view/";
+
+}
 
 function getSurahs() {
     fetch('https://quran-endpoint.vercel.app/quran')
