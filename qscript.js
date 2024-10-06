@@ -4,8 +4,10 @@ document.addEventListener("DOMContentLoaded", function () {
         ayah = document.querySelector('.ayah'),
         next = document.querySelector('.next'),
         prev = document.querySelector('.prev'),
-        stopBtn = document.querySelector('.stop'), 
-        reciterSelect = document.querySelector('.reciter-select');
+        stopBtn = document.querySelector('.stop'),
+        reciterSelect = document.querySelector('.reciter-select'),
+        searchAyahBtn = document.getElementById('search-ayah-btn'),
+        ayahInput = document.getElementById('ayah-input');
 
     let AyahsAudios = [],
         AyahsText = [],
@@ -19,6 +21,24 @@ document.addEventListener("DOMContentLoaded", function () {
             loadSurah(currentSurah.number, currentReciter);
         }
     });
+
+    searchAyahBtn.addEventListener('click', () => {
+        let inputAyahNumber = parseInt(ayahInput.value);
+        if (!isNaN(inputAyahNumber) && inputAyahNumber >= 0 && inputAyahNumber < AyahsAudios.length) {
+            ayahindex = inputAyahNumber;
+            change_Ayah(ayahindex);
+            ayahInput.value = ''; 
+
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'خطأ',
+                text: 'رقم الآية غير صحيح. حاول إدخال رقم ضمن نطاق السورة.',
+            });
+            ayahInput.value = '';
+        }
+    });
+    
 
     getSurahs();
 
@@ -40,8 +60,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 const allSurahs = document.querySelectorAll('.surahs div');
 
                 allSurahs.forEach(surahDiv => {
-                    surahDiv.addEventListener('click', () => {
-                        const surahNumber = surahDiv.getAttribute('data-number');
+                    surahDiv.addEventListener('click', (e) => {
+                        let target = e.target;
+                        if (target.classList.contains('english-name') || target.classList.contains('arabic-name')) {
+                            target = target.parentElement;
+                        }
+                        const surahNumber = target.getAttribute('data-number');
                         currentSurah = { number: surahNumber };
                         loadSurah(surahNumber, currentReciter);
                     });
@@ -58,26 +82,55 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadSurah(surahNumber, reciter) {
-        console.log(`جاري جلب السورة رقم ${surahNumber} من القارئ ${reciter}`);
+        Swal.fire({
+            title: 'جارٍ التحميل...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/${reciter}`)
             .then(response => response.json())
             .then(data => {
-                if (data.code !== 200) throw new Error("فشل في جلب تفاصيل السورة");
+                Swal.close();
+                if (data.code !== 200) throw new Error("فشل في جلب الآيات");
 
-                const ayahs = data.data.ayahs;
-                AyahsAudios = ayahs.map(ayah => ayah.audio);
-                AyahsText = ayahs.map(ayah => ayah.text);
+                AyahsAudios = data.data.ayahs.map(a => a.audio);
+                AyahsText = data.data.ayahs.map(a => a.text);
                 ayahindex = 0;
+
                 change_Ayah(ayahindex);
             })
             .catch(error => {
-                console.error("خطأ في جلب تفاصيل السورة:", error);
+                Swal.close();
+                console.error("خطأ في جلب الآيات:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'خطأ',
-                    text: 'فشل في تحميل تفاصيل السورة. حاول مرة أخرى لاحقًا.',
+                    text: 'فشل في تحميل الآيات. حاول مرة أخرى لاحقًا.',
                 });
             });
+    }
+
+    function change_Ayah(index) {
+        if (AyahsAudios[index]) {
+            audio.src = AyahsAudios[index];
+            if(index!=0)
+            ayah.innerHTML = index+"\t"+AyahsText[index] + "\t"+(index+1);
+        else
+        ayah.innerHTML = AyahsText[index] + "   "+(index+1);
+            audio.play().catch(error => {
+                console.error("خطأ في تشغيل الصوت:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'فشل في تشغيل الصوت. حاول مرة أخرى.',
+                });
+            });
+        } else {
+            console.warn(`لم يتم العثور على رابط الصوت للآية رقم ${index + 1}`);
+        }
     }
 
     next.addEventListener('click', () => {
@@ -111,7 +164,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     stopBtn.addEventListener('click', () => {
-        audio.pause(); 
+        audio.pause();
         Swal.fire({
             position: "center",
             icon: "success",
@@ -120,14 +173,12 @@ document.addEventListener("DOMContentLoaded", function () {
             timer: 1500
         });
     });
+
     audio.addEventListener('ended', () => {
-        ayahindex++;
-        if (ayahindex < AyahsAudios.length) {
+        if (ayahindex < AyahsAudios.length - 1) {
+            ayahindex++;
             change_Ayah(ayahindex);
         } else {
-            ayahindex = 0;
-            change_Ayah(ayahindex);
-            audio.pause();
             Swal.fire({
                 position: "center",
                 icon: "success",
@@ -135,24 +186,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 showConfirmButton: false,
                 timer: 1500
             });
+            ayahindex = 0;
+            change_Ayah(ayahindex);
         }
     });
-
-    function change_Ayah(index) {
-        if (AyahsAudios[index]) {
-            console.log(`تشغيل الآية رقم ${index + 1}: ${AyahsAudios[index]}`);
-            audio.src = AyahsAudios[index];
-            ayah.innerHTML = AyahsText[index];
-            audio.play().catch(error => {
-                console.error("خطأ في تشغيل الصوت:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'فشل في تشغيل الصوت. حاول مرة أخرى.',
-                });
-            });
-        } else {
-            console.warn(`لم يتم العثور على رابط الصوت للآية رقم ${index + 1}`);
-        }
-    }
 });
