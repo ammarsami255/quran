@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ayah = document.querySelector('.ayah'),
         next = document.querySelector('.next'),
         prev = document.querySelector('.prev'),
-        stopBtn = document.querySelector('.stop'), // زر الإيقاف
+        stopBtn = document.querySelector('.stop'), 
         reciterSelect = document.querySelector('.reciter-select');
 
     let AyahsAudios = [],
