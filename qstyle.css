@@ -189,6 +189,45 @@ body {
     color: #ffffff;
 }
 
+/* For tablets and large smartphones (max-width: 1024px) */
+@media (max-width: 1024px) {
+    .container {
+        width: 95%;
+    }
+
+    .player {
+        padding: 15px;
+    }
+
+    .ayahs .ayah {
+        font-size: 1.3rem;
+    }
+
+    .controls {
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .reciter-select {
+        width: 100%;
+    }
+
+    .icon {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+    }
+
+    #ayah-input {
+        width: 90px;
+    }
+
+    .surahs > div {
+        padding: 12px 15px;
+    }
+}
+
+/* For medium smartphones (max-width: 768px) */
 @media (max-width: 768px) {
     .container {
         width: 100%;
@@ -204,7 +243,7 @@ body {
     }
 
     .controls {
-        flex-direction: row;
+        flex-direction: column;
         gap: 15px;
     }
 
@@ -220,7 +259,7 @@ body {
     }
 
     .ayah-search {
-        flex-direction: row;
+        flex-direction: column;
     }
 
     #ayah-input {
@@ -235,7 +274,8 @@ body {
     }
 }
 
-@media (max-width: 480px) {
+/* For small smartphones (max-width: 576px) */
+@media (max-width: 576px) {
     .ayahs .ayah {
         font-size: 1rem;
     }
@@ -248,6 +288,7 @@ body {
 
     .reciter-select {
         width: 90%;
+        font-size: 0.9rem;
     }
 
     .ayah-search {
@@ -256,5 +297,49 @@ body {
 
     #ayah-input {
         width: 70px;
+    }
+
+    .surahs > div {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+}
+
+/* For very small smartphones (max-width: 400px) */
+@media (max-width: 400px) {
+    .container {
+        width: 100%;
+    }
+
+    .player {
+        padding: 10px;
+    }
+
+    .ayahs .ayah {
+        font-size: 0.9rem;
+    }
+
+    .icon {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+    }
+
+    .reciter-select {
+        width: 100%;
+        font-size: 0.8rem;
+    }
+
+    .ayah-search {
+        flex-direction: column;
+    }
+
+    #ayah-input {
+        width: 60px;
+    }
+
+    .surahs > div {
+        font-size: 0.8rem;
+        padding: 6px 10px;
     }
 }
