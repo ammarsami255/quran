@@ -116,10 +116,9 @@ document.addEventListener("DOMContentLoaded", function () {
     function change_Ayah(index) {
         if (AyahsAudios[index]) {
             audio.src = AyahsAudios[index];
-            if(index!=0)
-            ayah.innerHTML = index+"\t"+AyahsText[index] + "\t"+(index+1);
-        else
-        ayah.innerHTML = AyahsText[index] + "   "+(index+1);
+            
+            ayah.innerHTML = AyahsText[index] + "\t"+(index);
+
             audio.play().catch(error => {
                 console.error("خطأ في تشغيل الصوت:", error);
                 Swal.fire({
