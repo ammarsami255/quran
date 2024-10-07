@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     searchAyahBtn.addEventListener('click', () => {
-        let inputAyahNumber = parseInt(ayahInput.value)-1;
+        let inputAyahNumber = parseInt(ayahInput.value);
         if (!isNaN(inputAyahNumber) && inputAyahNumber >= 0 && inputAyahNumber < AyahsAudios.length) {
             ayahindex = inputAyahNumber;
             change_Ayah(ayahindex);
@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (AyahsAudios[index]) {
             audio.src = AyahsAudios[index];
             
-            ayah.innerHTML = AyahsText[index] + "\t"+(index);
+            ayah.innerHTML = AyahsText[index] + "\t"+(index+1);
 
             audio.play().catch(error => {
                 console.error("خطأ في تشغيل الصوت:", error);
