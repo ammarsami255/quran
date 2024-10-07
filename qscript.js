@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     searchAyahBtn.addEventListener('click', () => {
-        let inputAyahNumber = parseInt(ayahInput.value);
+        let inputAyahNumber = parseInt(ayahInput.value)-1;
         if (!isNaN(inputAyahNumber) && inputAyahNumber >= 0 && inputAyahNumber < AyahsAudios.length) {
             ayahindex = inputAyahNumber;
             change_Ayah(ayahindex);
