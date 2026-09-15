@@ -1,0 +1,26 @@
+{
+  "name": "القرآن الكريم - تلاوة وتفسير",
+  "short_name": "القرآن الكريم",
+  "description": "تطبيق ويب حديث للاستماع إلى القرآن الكريم وتلاوته وتفسيره بأصوات كبار القراء",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#131417",
+  "theme_color": "#131417",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "./logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
