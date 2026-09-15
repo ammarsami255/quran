@@ -248,9 +248,19 @@
                 <div class="modal-title-group">
                     <i class="fas fa-book-open"></i>
                     <div>
-                        <h3 id="tafseer-surah-title">التفسير الميسر</h3>
+                        <h3 id="tafseer-surah-title">تفسير الآية</h3>
                         <span id="tafseer-ayah-badge">الآية رقم 1</span>
                     </div>
+                </div>
+                <div class="tafseer-selector-wrap">
+                    <select id="tafseer-edition-select" class="tafseer-select" title="اختر كتاب التفسير">
+                        <option value="mokhtasar">المختصر في التفسير (مركز تفسير)</option>
+                        <option value="muyassar">التفسير الميسر (مجمع الملك فهد)</option>
+                        <option value="ibnkathir">تفسير ابن كثير</option>
+                        <option value="qurtubi">تفسير القرطبي</option>
+                        <option value="saadi">تفسير السعدي</option>
+                        <option value="jalalayn">تفسير الجلالين</option>
+                    </select>
                 </div>
                 <button id="close-tafseer-btn" class="modal-close-btn" title="إغلاق">&times;</button>
             </div>
@@ -260,7 +270,9 @@
                     <p id="tafseer-ayah-text" class="quran-text">...</p>
                 </div>
                 <div class="tafseer-content-box">
-                    <h4>تفسير الآية:</h4>
+                    <div class="tafseer-content-header">
+                        <h4 id="tafseer-book-name">المختصر في التفسير</h4>
+                    </div>
                     <div id="tafseer-text-container">
                         <div class="tafseer-spinner"><i class="fas fa-circle-notch fa-spin"></i> جارٍ جلب التفسير...</div>
                     </div>

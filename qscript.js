@@ -58,7 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
         playbackRateIndex: 0,
         isMuted: false,
         theme: localStorage.getItem('quran_theme') || 'dark',
-        lastRead: JSON.parse(localStorage.getItem('quran_last_read') || 'null')
+        lastRead: JSON.parse(localStorage.getItem('quran_last_read') || 'null'),
+        currentTafseer: localStorage.getItem('quran_tafseer') || 'mokhtasar',
+        activeTafseerAyahIndex: 0
     };
 
     // ==========================================================================
@@ -121,6 +123,8 @@ document.addEventListener("DOMContentLoaded", () => {
         tafseerSurahTitle: document.getElementById('tafseer-surah-title'),
         tafseerAyahBadge: document.getElementById('tafseer-ayah-badge'),
         tafseerAyahText: document.getElementById('tafseer-ayah-text'),
+        tafseerEditionSelect: document.getElementById('tafseer-edition-select'),
+        tafseerBookName: document.getElementById('tafseer-book-name'),
         tafseerTextContainer: document.getElementById('tafseer-text-container'),
         // Toasts
         toastContainer: document.getElementById('toast-container')
@@ -133,9 +137,16 @@ document.addEventListener("DOMContentLoaded", () => {
         initTheme();
         initPWA();
         initReciter();
+        initTafseer();
         bindEvents();
         fetchSurahs();
         updateResumeButton();
+    }
+
+    function initTafseer() {
+        if (DOM.tafseerEditionSelect) {
+            DOM.tafseerEditionSelect.value = state.currentTafseer;
+        }
     }
 
     // Initialize Theme
@@ -345,7 +356,14 @@ document.addEventListener("DOMContentLoaded", () => {
         // Window scroll listener: show/hide floating button when scrolling away from active ayah
         window.addEventListener('scroll', handleScrollVisibility);
 
-        // Tafseer Modal Close
+        // Tafseer Edition Switcher & Modal Close
+        if (DOM.tafseerEditionSelect) {
+            DOM.tafseerEditionSelect.addEventListener('change', () => {
+                state.currentTafseer = DOM.tafseerEditionSelect.value;
+                localStorage.setItem('quran_tafseer', state.currentTafseer);
+                loadTafseerContent(state.activeTafseerAyahIndex);
+            });
+        }
         DOM.closeTafseerBtn.addEventListener('click', closeTafseer);
         DOM.tafseerModal.addEventListener('click', (e) => {
             if (e.target === DOM.tafseerModal) closeTafseer();
@@ -872,36 +890,146 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==========================================================================
-    // Tafseer Modal Integration
+    // Tafseer Registry & Dynamic Switcher (المختصر، الميسر، ابن كثير، القرطبي، السعدي، الجلالين)
     // ==========================================================================
+    const TAFSEER_REGISTRY = {
+        mokhtasar: {
+            id: 'mokhtasar',
+            name: 'المختصر في التفسير (مركز تفسير)',
+            fetch: async (surah, ayah) => {
+                const res = await fetch(`https://quranenc.com/api/v1/translation/aya/arabic_mokhtasar/${surah}/${ayah}`);
+                const data = await res.json();
+                if (data?.result?.translation) {
+                    return data.result.translation;
+                }
+                throw new Error('تعذر جلب المختصر في التفسير');
+            }
+        },
+        muyassar: {
+            id: 'muyassar',
+            name: 'التفسير الميسر (مجمع الملك فهد)',
+            fetch: async (surah, ayah) => {
+                const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/ar.muyassar`);
+                const data = await res.json();
+                if (data?.code === 200 && data?.data?.text) {
+                    return data.data.text;
+                }
+                throw new Error('تعذر جلب التفسير الميسر');
+            }
+        },
+        ibnkathir: {
+            id: 'ibnkathir',
+            name: 'تفسير ابن كثير (تفسير القرآن العظيم)',
+            fetch: async (surah, ayah) => {
+                const res = await fetch(`https://api.quran.com/api/v4/tafsirs/14/by_ayah/${surah}:${ayah}`);
+                const data = await res.json();
+                if (data?.tafsir?.text) {
+                    return data.tafsir.text;
+                }
+                throw new Error('تعذر جلب تفسير ابن كثير');
+            }
+        },
+        qurtubi: {
+            id: 'qurtubi',
+            name: 'تفسير القرطبي (الجامع لأحكام القرآن)',
+            fetch: async (surah, ayah) => {
+                const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/ar.qurtubi`);
+                const data = await res.json();
+                if (data?.code === 200 && data?.data?.text) {
+                    return data.data.text;
+                }
+                throw new Error('تعذر جلب تفسير القرطبي');
+            }
+        },
+        saadi: {
+            id: 'saadi',
+            name: 'تفسير السعدي (تيسير الكريم الرحمن)',
+            fetch: async (surah, ayah) => {
+                const res = await fetch(`https://api.quran.com/api/v4/tafsirs/91/by_ayah/${surah}:${ayah}`);
+                const data = await res.json();
+                if (data?.tafsir?.text) {
+                    return data.tafsir.text;
+                }
+                throw new Error('تعذر جلب تفسير السعدي');
+            }
+        },
+        jalalayn: {
+            id: 'jalalayn',
+            name: 'تفسير الجلالين',
+            fetch: async (surah, ayah) => {
+                const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/ar.jalalayn`);
+                const data = await res.json();
+                if (data?.code === 200 && data?.data?.text) {
+                    return data.data.text;
+                }
+                throw new Error('تعذر جلب تفسير الجلالين');
+            }
+        }
+    };
+
+    function formatTafseerContent(text) {
+        if (!text) return '';
+        // If content contains HTML tags (like Ibn Kathir and Saadi), return rendered HTML
+        if (/<[a-z][\s\S]*>/i.test(text)) {
+            return text;
+        }
+        // Plain text: format paragraphs cleanly
+        return text
+            .split('\n')
+            .map(p => p.trim())
+            .filter(Boolean)
+            .map(p => `<p>${p}</p>`)
+            .join('');
+    }
+
     async function openTafseer(ayahIndex) {
         if (!state.currentSurah || !state.currentAyahs[ayahIndex]) return;
 
+        state.activeTafseerAyahIndex = ayahIndex;
         const ayah = state.currentAyahs[ayahIndex];
         const ayahNumber = ayahIndex + 1;
 
         DOM.tafseerSurahTitle.textContent = `${state.currentSurah.name}`;
         DOM.tafseerAyahBadge.textContent = `الآية رقم ${ayahNumber}`;
         DOM.tafseerAyahText.textContent = ayah.text;
+
+        if (DOM.tafseerEditionSelect) {
+            DOM.tafseerEditionSelect.value = state.currentTafseer;
+        }
+
+        DOM.tafseerModal.style.display = 'flex';
+        await loadTafseerContent(ayahIndex);
+    }
+
+    async function loadTafseerContent(ayahIndex) {
+        if (!state.currentSurah || !state.currentAyahs[ayahIndex]) return;
+
+        const ayahNumber = ayahIndex + 1;
+        const currentEdition = state.currentTafseer || 'mokhtasar';
+        const tafseerInfo = TAFSEER_REGISTRY[currentEdition] || TAFSEER_REGISTRY.mokhtasar;
+
+        if (DOM.tafseerBookName) {
+            DOM.tafseerBookName.textContent = tafseerInfo.name;
+        }
+
         DOM.tafseerTextContainer.innerHTML = `
             <div class="tafseer-spinner">
-                <i class="fas fa-circle-notch fa-spin"></i> جارٍ تحميل التفسير الميسر...
+                <i class="fas fa-circle-notch fa-spin"></i> جارٍ تحميل ${tafseerInfo.name}...
             </div>
         `;
-        DOM.tafseerModal.style.display = 'flex';
 
         try {
-            const res = await fetch(`https://api.alquran.cloud/v1/ayah/${state.currentSurah.number}:${ayahNumber}/ar.muyassar`);
-            const data = await res.json();
-
-            if (data.code === 200 && data.data && data.data.text) {
-                DOM.tafseerTextContainer.innerHTML = `<p>${data.data.text}</p>`;
-            } else {
-                throw new Error('تعذر العثور على التفسير');
-            }
+            const content = await tafseerInfo.fetch(state.currentSurah.number, ayahNumber);
+            DOM.tafseerTextContainer.innerHTML = formatTafseerContent(content);
         } catch (err) {
-            console.error('Tafseer fetch error:', err);
-            DOM.tafseerTextContainer.innerHTML = `<p style="color: #ef4444;">تعذر جلب التفسير الميسر حالياً، يرجى التحقق من الاتصال بالإنترنت.</p>`;
+            console.error('Tafseer loading error:', err);
+            DOM.tafseerTextContainer.innerHTML = `
+                <div style="text-align: center; padding: 24px 16px; color: #ef4444;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 1.5rem; margin-bottom: 10px;"></i>
+                    <p style="margin: 0 0 8px 0; font-weight: 600;">تعذر جلب التفسير من هذا المصدر حالياً.</p>
+                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">يمكنك تجربة كتاب تفسير آخر (مثل المختصر أو التفسير الميسر أو السعدي) من القائمة بالأعلى.</p>
+                </div>
+            `;
         }
     }
 
