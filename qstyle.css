@@ -545,6 +545,40 @@ body {
     color: #ffffff;
 }
 
+.reader-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reader-locate-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.ayah-inline-tafseer {
+    margin-top: 14px;
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-elevated);
+    border: 1px dashed var(--border-subtle);
+    border-right: 3px solid var(--primary);
+    font-size: 0.96rem;
+    line-height: 1.95;
+    color: var(--text-primary);
+    text-align: justify;
+    animation: fadeIn 0.2s ease;
+}
+
+.ayah-inline-tafseer .tafseer-label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
 /* Bismillah Banner (Authentic Quranic Plate) */
 .bismillah-container {
     text-align: center;
@@ -1349,4 +1383,3 @@ body {
         font-size: 1.35rem;
     }
 }
-

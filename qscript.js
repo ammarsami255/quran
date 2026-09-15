@@ -59,8 +59,13 @@ document.addEventListener("DOMContentLoaded", () => {
         isMuted: false,
         theme: localStorage.getItem('quran_theme') || 'dark',
         lastRead: JSON.parse(localStorage.getItem('quran_last_read') || 'null'),
-        currentTafseer: localStorage.getItem('quran_tafseer') || 'mokhtasar',
-        activeTafseerAyahIndex: 0
+        currentTafseer: (() => {
+            const saved = localStorage.getItem('quran_tafseer');
+            return ['mokhtasar', 'muyassar', 'ibnkathir', 'qurtubi', 'saadi', 'jalalayn'].includes(saved) ? saved : 'mokhtasar';
+        })(),
+        activeTafseerAyahIndex: 0,
+        showInlineTafseer: localStorage.getItem('quran_inline_tafseer') === 'true',
+        inlineTafseerData: {}
     };
 
     // ==========================================================================
@@ -93,6 +98,8 @@ document.addEventListener("DOMContentLoaded", () => {
         jumpBtn: document.getElementById('jump-ayah-btn'),
         btnReaderLocate: document.getElementById('btn-reader-locate'),
         readerActiveAyahNum: document.getElementById('reader-active-ayah-num'),
+        btnToggleInlineTafseer: document.getElementById('btn-toggle-inline-tafseer'),
+        inlineTafseerLabel: document.getElementById('inline-tafseer-label'),
         floatingLocateBtn: document.getElementById('floating-locate-btn'),
         floatingAyahNum: document.getElementById('floating-ayah-num'),
         // Player Bar
@@ -147,6 +154,60 @@ document.addEventListener("DOMContentLoaded", () => {
         if (DOM.tafseerEditionSelect) {
             DOM.tafseerEditionSelect.value = state.currentTafseer;
         }
+        updateInlineTafseerBtn();
+    }
+
+    function updateInlineTafseerBtn() {
+        if (!DOM.btnToggleInlineTafseer) return;
+        if (state.showInlineTafseer) {
+            DOM.btnToggleInlineTafseer.classList.add('active');
+            if (DOM.inlineTafseerLabel) DOM.inlineTafseerLabel.textContent = 'إخفاء التفسير';
+        } else {
+            DOM.btnToggleInlineTafseer.classList.remove('active');
+            if (DOM.inlineTafseerLabel) DOM.inlineTafseerLabel.textContent = 'عرض التفسير';
+        }
+    }
+
+    async function toggleInlineTafseer() {
+        state.showInlineTafseer = !state.showInlineTafseer;
+        localStorage.setItem('quran_inline_tafseer', state.showInlineTafseer);
+        updateInlineTafseerBtn();
+
+        if (state.showInlineTafseer) {
+            showToast('تم تفعيل عرض التفسير تحت الآيات');
+            renderAyahs();
+            await loadSurahInlineTafseer();
+        } else {
+            showToast('تم إخفاء التفسير من تحت الآيات');
+            renderAyahs();
+        }
+        highlightActiveAyah(false);
+    }
+
+    async function loadSurahInlineTafseer() {
+        if (!state.currentSurah) return;
+        const sNum = state.currentSurah.number;
+        if (state.inlineTafseerData[sNum]) return;
+
+        try {
+            const res = await fetch(`https://api.alquran.cloud/v1/surah/${sNum}/ar.muyassar`);
+            const data = await res.json();
+            if (data && data.code === 200 && data.data && data.data.ayahs) {
+                state.inlineTafseerData[sNum] = data.data.ayahs;
+                // Update rendered placeholders
+                data.data.ayahs.forEach((a, idx) => {
+                    const el = document.getElementById(`inline-tafseer-${idx}`);
+                    if (el) {
+                        el.innerHTML = `
+                            <span class="tafseer-label"><i class="fas fa-book-open"></i> التفسير الميسر:</span>
+                            <p>${a.text}</p>
+                        `;
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Failed to load inline tafseer', e);
+        }
     }
 
     // Initialize Theme
@@ -173,12 +234,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Register Service Worker for PWA
+    // Register Service Worker for PWA with Instant Update Delivery
     function initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker Registered Successfully'))
+                .then((reg) => {
+                    console.log('Service Worker Registered Successfully');
+                    // Check for network updates immediately
+                    reg.update();
+                })
                 .catch(err => console.warn('Service Worker Registration Failed:', err));
+
+            // Reload automatically if a new service worker version took over
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
         }
     }
 
@@ -272,8 +346,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const ayahIndex = parseInt(ayahCard.getAttribute('data-ayah-index'), 10);
 
             if (tafseerBtn) {
+                e.stopPropagation();
                 openTafseer(ayahIndex);
             } else if (copyBtn) {
+                e.stopPropagation();
                 copyAyahText(ayahIndex);
             } else {
                 // Clicking anywhere on the Ayah card or text directly triggers playback!
@@ -352,6 +428,11 @@ document.addEventListener("DOMContentLoaded", () => {
         DOM.btnLocateAyah.addEventListener('click', locateCurrentAyah);
         if (DOM.btnReaderLocate) DOM.btnReaderLocate.addEventListener('click', locateCurrentAyah);
         if (DOM.floatingLocateBtn) DOM.floatingLocateBtn.addEventListener('click', locateCurrentAyah);
+
+        // Toggle Inline Tafseer Under Ayahs
+        if (DOM.btnToggleInlineTafseer) {
+            DOM.btnToggleInlineTafseer.addEventListener('click', toggleInlineTafseer);
+        }
 
         // Window scroll listener: show/hide floating button when scrolling away from active ayah
         window.addEventListener('scroll', handleScrollVisibility);
@@ -548,6 +629,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
             });
 
+            if (state.showInlineTafseer) {
+                loadSurahInlineTafseer();
+            }
+
             if (callback) callback();
         } catch (error) {
             console.error('Error loading surah:', error);
@@ -574,6 +659,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const isActive = index === state.currentAyahIndex;
 
+            let inlineHtml = '';
+            if (state.showInlineTafseer) {
+                const tafseerItem = state.inlineTafseerData[state.currentSurah?.number]?.[index];
+                const tafseerText = tafseerItem ? tafseerItem.text : '<i class="fas fa-circle-notch fa-spin"></i> جارٍ تحميل التفسير...';
+                inlineHtml = `
+                    <div class="ayah-inline-tafseer" id="inline-tafseer-${index}">
+                        <span class="tafseer-label"><i class="fas fa-book-open"></i> التفسير الميسر:</span>
+                        <p>${tafseerText}</p>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="ayah-card ${isActive ? 'active-ayah' : ''}" id="ayah-card-${index}" data-ayah-index="${index}">
                     <div class="ayah-content">
@@ -581,11 +678,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             ${ayahText}
                             <span class="ayah-end-marker">﴿${toArabicDigits(ayahNum)}﴾</span>
                         </p>
+                        ${inlineHtml}
                         <div class="ayah-actions">
                             <button class="ayah-action-btn play-ayah" title="استمع لهذه الآية">
                                 <i class="fas fa-play"></i> استمع
                             </button>
-                            <button class="ayah-action-btn tafseer-ayah" title="تفسير الآية">
+                            <button class="ayah-action-btn tafseer-ayah" title="تفسير الآية بالتفصيل">
                                 <i class="fas fa-book-open"></i> التفسير
                             </button>
                             <button class="ayah-action-btn copy-ayah" title="نسخ نص الآية">
@@ -993,6 +1091,10 @@ document.addEventListener("DOMContentLoaded", () => {
         DOM.tafseerAyahBadge.textContent = `الآية رقم ${ayahNumber}`;
         DOM.tafseerAyahText.textContent = ayah.text;
 
+        if (!TAFSEER_REGISTRY[state.currentTafseer]) {
+            state.currentTafseer = 'mokhtasar';
+        }
+
         if (DOM.tafseerEditionSelect) {
             DOM.tafseerEditionSelect.value = state.currentTafseer;
         }
@@ -1024,14 +1126,32 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (err) {
             console.error('Tafseer loading error:', err);
             DOM.tafseerTextContainer.innerHTML = `
-                <div style="text-align: center; padding: 24px 16px; color: #ef4444;">
-                    <i class="fas fa-exclamation-circle" style="font-size: 1.5rem; margin-bottom: 10px;"></i>
-                    <p style="margin: 0 0 8px 0; font-weight: 600;">تعذر جلب التفسير من هذا المصدر حالياً.</p>
-                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">يمكنك تجربة كتاب تفسير آخر (مثل المختصر أو التفسير الميسر أو السعدي) من القائمة بالأعلى.</p>
+                <div style="text-align: center; padding: 24px 16px; color: var(--text-primary);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 1.8rem; color: #eab308; margin-bottom: 10px;"></i>
+                    <p style="margin: 0 0 8px 0; font-weight: 700; font-size: 1.05rem;">تعذر الاتصال بخادم (${tafseerInfo.name}) حالياً.</p>
+                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">يرجى اختيار أحد كتب التفسير البديلة المتاحة:</p>
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="window.switchTafseerEdition('muyassar')" class="reader-locate-btn">التفسير الميسر</button>
+                        <button onclick="window.switchTafseerEdition('saadi')" class="reader-locate-btn">تفسير السعدي</button>
+                        <button onclick="window.switchTafseerEdition('mokhtasar')" class="reader-locate-btn">المختصر</button>
+                        <button onclick="window.switchTafseerEdition('ibnkathir')" class="reader-locate-btn">ابن كثير</button>
+                        <button onclick="window.switchTafseerEdition('qurtubi')" class="reader-locate-btn">القرطبي</button>
+                        <button onclick="window.switchTafseerEdition('jalalayn')" class="reader-locate-btn">الجلالين</button>
+                    </div>
                 </div>
             `;
         }
     }
+
+    // Global helper for one-click tafseer switching
+    window.switchTafseerEdition = function(key) {
+        if (DOM.tafseerEditionSelect) {
+            DOM.tafseerEditionSelect.value = key;
+            state.currentTafseer = key;
+            localStorage.setItem('quran_tafseer', key);
+            loadTafseerContent(state.activeTafseerAyahIndex);
+        }
+    };
 
     function closeTafseer() {
         DOM.tafseerModal.style.display = 'none';
@@ -1112,4 +1232,3 @@ document.addEventListener("DOMContentLoaded", () => {
     // Start Application
     init();
 });
-

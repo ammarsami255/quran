@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quran-app-v1';
+const CACHE_NAME = 'quran-app-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,12 +9,12 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -28,15 +28,24 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// Network-First for same-origin app files: Ensures new updates and bugfixes are live IMMEDIATELY
 self.addEventListener('fetch', event => {
-  // Only handle GET requests and avoid caching external APIs in sw cache directly to keep fresh
   if (event.request.method !== 'GET') return;
   
   if (event.request.url.startsWith(self.location.origin)) {
     event.respondWith(
-      caches.match(event.request).then(cachedResponse => {
-        return cachedResponse || fetch(event.request);
-      })
+      fetch(event.request)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // If network fails (offline), fall back to cached copy
+          return caches.match(event.request);
+        })
     );
   }
 });

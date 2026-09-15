@@ -12,6 +12,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
 
+    <!-- Google Fonts: IBM Plex Sans Arabic & Amiri Quran (Human Editorial Fonts) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +21,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="qstyle.css">
+    <link rel="stylesheet" href="qstyle.css?v=3.0">
 </head>
 
 <body>
@@ -109,10 +110,16 @@
                         <button id="jump-ayah-btn" title="انتقال للآية"><i class="fas fa-arrow-left"></i></button>
                     </div>
                 </div>
-                <button id="btn-reader-locate" class="reader-locate-btn" title="الانتقال إلى موضع الآية الجارية" style="display: none;">
-                    <i class="fas fa-crosshairs"></i>
-                    <span>الآية الجارية (<span id="reader-active-ayah-num">1</span>)</span>
-                </button>
+                <div class="reader-header-actions">
+                    <button id="btn-toggle-inline-tafseer" class="reader-locate-btn" title="إظهار / إخفاء التفسير تحت الآيات مباشرة">
+                        <i class="fas fa-book-open"></i>
+                        <span id="inline-tafseer-label">عرض التفسير</span>
+                    </button>
+                    <button id="btn-reader-locate" class="reader-locate-btn" title="الانتقال إلى موضع الآية الجارية" style="display: none;">
+                        <i class="fas fa-crosshairs"></i>
+                        <span>الآية الجارية (<span id="reader-active-ayah-num">1</span>)</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Bismillah Header Banner -->
@@ -287,8 +294,7 @@
     <audio id="quran-audio" preload="auto"></audio>
 
     <!-- Application Script -->
-    <script src="qscript.js"></script>
+    <script src="qscript.js?v=3.0"></script>
 </body>
 
 </html>
-
