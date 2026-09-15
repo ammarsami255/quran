@@ -1112,3 +1112,4 @@ document.addEventListener("DOMContentLoaded", () => {
     // Start Application
     init();
 });
+
