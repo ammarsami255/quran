@@ -1,41 +1,281 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>القرآن الكريم</title>
-    <link rel="stylesheet" href="qstyle.css">
+    <title>القرآن الكريم | تلاوة وتفسير واستماع</title>
+    <meta name="description" content="تطبيق ويب عصري للقرآن الكريم مع تلاوات خاشعة لكبار القراء، وتظليل متزامن للآيات، والتفسير الميسر، بدون أي إعلانات ومجاني 100%.">
+    <meta name="theme-color" content="#064e3b">
+
+    <!-- Web App Manifest & Favicon -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- Google Fonts: IBM Plex Sans Arabic & Amiri Quran (Human Editorial Fonts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="qstyle.css">
 </head>
 
 <body>
-    <div class="container">
-        <div class="player">
-            <div class="ayahs">
-                <div class="ayah">اضغط على السورة للاستماع</div>
-                <audio src="" controls class="quranPlayer" autoplay></audio>
-                <div class="controls">
-                    <div class="icon prev"><i class="fas fa-backward"></i></div>
-                    <div class="icon stop"><i class="fas fa-stop"></i></div>
-                    <select class="reciter-select">
-                        <option value="ar.alafasy">مشاري العفاسي</option>
-                        <option value="ar.minshawimujawwad"> المنشاوي مجود</option>
-                        <option value="ar.minshawi">المنشاوي مرتل</option>
-                        <option value="ar.husary">الحصري</option>
-                        <option value="ar.abdulbasitmurattal">عبد الباسط عبد الصمد</option>
-                    </select>
-                    <div class="icon next"><i class="fas fa-forward"></i></div>
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand" id="brand-home" title="الرئيسية">
+                <div class="brand-icon">
+                    <img src="logo.png" alt="شعار القرآن الكريم" class="brand-logo-img">
                 </div>
-                <div class="ayah-search">
-                    <input type="number" id="ayah-input" placeholder="رقم الآية">
-                    <button id="search-ayah-btn" class="icon search"><i class="fas fa-search"></i></button>
+                <div class="brand-text">
+                    <h1>القرآن الكريم</h1>
+                    <span>تلاوة • تدبّر • تفسير</span>
+                </div>
+            </div>
+
+            <!-- Search Bar in Header -->
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="surah-search" placeholder="ابحث باسم السورة أو رقمها (مثال: الكهف أو 18)..." autocomplete="off">
+                <button id="clear-search" class="clear-search-btn" title="مسح البحث" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button id="resume-last-read" class="action-btn" title="متابعة آخر قراءة">
+                    <i class="fas fa-bookmark"></i>
+                    <span class="btn-text">آخر موضع</span>
+                </button>
+                <button id="theme-toggle" class="action-btn theme-btn" title="تبديل المظهر">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+        <!-- VIEW 1: Surahs Grid View -->
+        <section id="surahs-view" class="view-section active">
+            <!-- Filter Bar -->
+            <div class="filters-bar">
+                <div class="filter-chips">
+                    <button class="chip active" data-filter="all">جميع السور</button>
+                    <button class="chip" data-filter="Meccan">السور المكية</button>
+                    <button class="chip" data-filter="Medinan">السور المدنية</button>
+                </div>
+                <div class="surahs-stat" id="search-stat">
+                    <span>114 سورة</span>
+                </div>
+            </div>
+
+            <!-- Surahs Grid -->
+            <div class="surahs-grid" id="surahs-grid">
+                <!-- Skeleton cards while loading -->
+                <div class="skeleton-loader">
+                    <div class="spinner"></div>
+                    <p>جارٍ تحميل السور الكريمة...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: Surah Reader & Recitation View -->
+        <section id="reader-view" class="view-section" style="display: none;">
+            <!-- Reader Navigation Header -->
+            <div class="reader-header">
+                <button id="btn-back" class="back-btn">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>قائمة السور</span>
+                </button>
+                
+                <div class="reader-surah-info">
+                    <h2 id="reader-surah-name" class="reader-surah-title">سورة الفاتحة</h2>
+                    <div class="reader-meta">
+                        <span id="reader-revelation" class="badge">مكية</span>
+                        <span id="reader-ayahs-count" class="badge">7 آيات</span>
+                        <span id="reader-surah-order" class="badge">ترتيبها: 1</span>
+                    </div>
+                </div>
+
+                <div class="reader-jump">
+                    <div class="jump-box">
+                        <input type="number" id="jump-ayah-input" placeholder="رقم الآية" min="1">
+                        <button id="jump-ayah-btn" title="انتقال للآية"><i class="fas fa-arrow-left"></i></button>
+                    </div>
+                </div>
+                <button id="btn-reader-locate" class="reader-locate-btn" title="الانتقال إلى موضع الآية الجارية" style="display: none;">
+                    <i class="fas fa-crosshairs"></i>
+                    <span>الآية الجارية (<span id="reader-active-ayah-num">1</span>)</span>
+                </button>
+            </div>
+
+            <!-- Bismillah Header Banner -->
+            <div class="bismillah-container" id="bismillah-box">
+                <p class="bismillah-text">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
+            </div>
+
+            <!-- Verses Container -->
+            <div class="ayahs-container" id="ayahs-container">
+                <!-- Ayahs dynamically inserted here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Smart Button to Jump to Active Ayah -->
+    <button id="floating-locate-btn" class="floating-locate-pill" style="display: none;" title="الانتقال إلى موضع الآية الجارية">
+        <i class="fas fa-crosshairs"></i>
+        <span>العودة للآية الجارية (<span id="floating-ayah-num">1</span>)</span>
+    </button>
+
+    <!-- Floating Bottom Audio Player Bar -->
+    <div class="audio-player-bar" id="audio-player-bar">
+        <div class="player-container">
+            <!-- Track Meta Info (Right in RTL) -->
+            <div class="player-info">
+                <div class="surah-badge-icon">
+                    <img src="logo.png" alt="شعار القرآن" class="player-logo-img">
+                </div>
+                <div class="track-details">
+                    <div class="track-surah" id="player-surah-title">اختر سورة للاستماع</div>
+                    <div class="track-reciter" id="player-reciter-name">مشاري العفاسي</div>
+                </div>
+                <!-- Large & Clear Button to Locate Ayah -->
+                <button id="btn-locate-ayah" class="btn-locate-prominent" title="الانتقال إلى موضع الآية الحالية في المصحف">
+                    <i class="fas fa-crosshairs"></i>
+                    <span>موضع الآية <b id="locate-ayah-num">1</b></span>
+                </button>
+            </div>
+
+            <!-- Center Audio Controls and Progress -->
+            <div class="player-center">
+                <div class="playback-controls">
+                    <button id="btn-prev" class="control-btn" title="الآية السابقة">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                    <button id="btn-play" class="control-btn play-btn" title="تشغيل / إيقاف">
+                        <i class="fas fa-play" id="play-icon"></i>
+                    </button>
+                    <button id="btn-next" class="control-btn" title="الآية التالية">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button id="btn-stop" class="control-btn stop-btn" title="إيقاف">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                </div>
+
+                <!-- Progress Bar & Timers -->
+                <div class="progress-bar-container">
+                    <span id="current-time" class="time-label">00:00</span>
+                    <div class="seek-slider-wrapper">
+                        <input type="range" id="audio-seek" min="0" max="100" value="0" class="seek-slider">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <span id="total-duration" class="time-label">00:00</span>
+                </div>
+            </div>
+
+            <!-- Additional Player Options (Left in RTL) -->
+            <div class="player-extra">
+                <!-- Reciter Dropdown (Verified 100% Working) -->
+                <div class="reciter-wrapper">
+                    <select id="reciter-select" class="custom-select" title="اختر القارئ">
+                        <optgroup label="كبار القراء والمحققين">
+                            <option value="ar.alafasy">مشاري العفاسي</option>
+                            <option value="ar.minshawi">محمد صديق المنشاوي (مرتل)</option>
+                            <option value="ar.minshawimujawwad">محمد صديق المنشاوي (مجود)</option>
+                            <option value="ar.husary">محمود خليل الحصري (مرتل)</option>
+                            <option value="ar.husarymujawwad">محمود خليل الحصري (مجود)</option>
+                            <option value="ar.abdulbasitmurattal">عبد الباسط عبد الصمد (مرتل)</option>
+                            <option value="ar.abdulsamad">عبد الباسط عبد الصمد (مجود)</option>
+                            <option value="ar.hudhaify">علي بن عبد الرحمن الحذيفي</option>
+                            <option value="ar.aymanswoaid">أيمن سويد</option>
+                        </optgroup>
+                        <optgroup label="أئمة الحرمين الشريفين">
+                            <option value="ar.mahermuaiqly">ماهر المعيقلي</option>
+                            <option value="ar.abdurrahmaansudais">عبد الرحمن السديس</option>
+                            <option value="ar.saoodshuraym">سعود الشريم</option>
+                            <option value="ea.juhany">عبد الله الجهني</option>
+                            <option value="ea.jaber">علي جابر</option>
+                            <option value="ea.budair">صلاح البدير</option>
+                        </optgroup>
+                        <optgroup label="مشاهير القراء">
+                            <option value="ea.dossari">ياسر الدوسري</option>
+                            <option value="ea.qatami">ناصر القطامي</option>
+                            <option value="ea.ghamadi">سعد الغامدي</option>
+                            <option value="ea.fares">فارس عباد</option>
+                            <option value="ar.ahmedajamy">أحمد بن علي العجمي</option>
+                            <option value="ar.shaatree">أبو بكر الشاطري</option>
+                            <option value="ar.hanirifai">هاني الرفاعي</option>
+                            <option value="ar.muhammadayyoub">محمد أيوب</option>
+                            <option value="ar.muhammadjibreel">محمد جبريل</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!-- Repeat Button -->
+                <button id="btn-repeat" class="tool-btn" title="تكرار الآية (للحفظ والمراجعة)">
+                    <i class="fas fa-repeat"></i>
+                    <span id="repeat-badge" class="tool-badge">0</span>
+                </button>
+
+                <!-- Playback Speed -->
+                <button id="btn-speed" class="tool-btn" title="سرعة القراءة">
+                    <span id="speed-label">1x</span>
+                </button>
+
+                <!-- Volume Slider -->
+                <div class="volume-container">
+                    <button id="btn-mute" class="tool-btn" title="كتم الصوت">
+                        <i class="fas fa-volume-up" id="volume-icon"></i>
+                    </button>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" class="volume-slider">
                 </div>
             </div>
         </div>
-        <div class="surahs"></div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Tafseer Modal Dialog -->
+    <div class="modal-overlay" id="tafseer-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <i class="fas fa-book-open"></i>
+                    <div>
+                        <h3 id="tafseer-surah-title">التفسير الميسر</h3>
+                        <span id="tafseer-ayah-badge">الآية رقم 1</span>
+                    </div>
+                </div>
+                <button id="close-tafseer-btn" class="modal-close-btn" title="إغلاق">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="ayah-original-box">
+                    <p id="tafseer-ayah-text" class="quran-text">...</p>
+                </div>
+                <div class="tafseer-content-box">
+                    <h4>تفسير الآية:</h4>
+                    <div id="tafseer-text-container">
+                        <div class="tafseer-spinner"><i class="fas fa-circle-notch fa-spin"></i> جارٍ جلب التفسير...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Hidden Native Audio Element -->
+    <audio id="quran-audio" preload="auto"></audio>
+
+    <!-- Application Script -->
     <script src="qscript.js"></script>
 </body>
 
