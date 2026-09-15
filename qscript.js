@@ -386,12 +386,15 @@ document.addEventListener("DOMContentLoaded", () => {
             state.currentReciter = DOM.reciterSelect.value;
             localStorage.setItem('quran_reciter', state.currentReciter);
             updateReciterDisplayName();
+            clearAudioPreloadCache();
 
             if (state.currentSurah && state.currentAyahs.length > 0) {
                 // Update audio URLs for all ayahs immediately without re-fetching surah text
                 state.currentAyahs.forEach((a, i) => {
                     a.audio = getAyahAudioUrl(state.currentSurah.number, i + 1, a.number, state.currentReciter);
                 });
+
+                preloadUpcomingAyahs(state.currentAyahIndex);
 
                 const wasPlaying = state.isPlaying;
                 if (wasPlaying) {
@@ -603,6 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         await loadSurahData(surahNumber, () => {
             renderAyahs();
+            preloadUpcomingAyahs(targetAyahIndex);
             if (autoPlay) {
                 playAyah(targetAyahIndex);
             } else {
@@ -716,6 +720,71 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==========================================================================
+    // Smart Lookahead Audio Preloader & Cache (تحميل الآيات القادمة مسبقاً لسلاسة تامة)
+    // ==========================================================================
+    const PRELOAD_AHEAD_COUNT = 3;
+    const audioPreloadCache = new Map();
+
+    function preloadUpcomingAyahs(fromIndex) {
+        if (!state.currentAyahs || state.currentAyahs.length === 0) return;
+
+        for (let offset = 1; offset <= PRELOAD_AHEAD_COUNT; offset++) {
+            const nextIdx = fromIndex + offset;
+            if (nextIdx < state.currentAyahs.length) {
+                const targetAyah = state.currentAyahs[nextIdx];
+                if (targetAyah && targetAyah.audio) {
+                    preloadSingleAudio(targetAyah.audio);
+                }
+            }
+        }
+    }
+
+    function preloadSingleAudio(url) {
+        if (!url || audioPreloadCache.has(url)) return;
+
+        try {
+            // HTMLAudioElement preload auto triggers HTTP disk & memory caching
+            const pre = new Audio();
+            pre.preload = 'auto';
+            pre.src = url;
+            pre.load();
+            audioPreloadCache.set(url, pre);
+
+            // Keep cache size bounded to prevent memory leaks
+            if (audioPreloadCache.size > 12) {
+                const oldest = audioPreloadCache.keys().next().value;
+                const oldAudio = audioPreloadCache.get(oldest);
+                if (oldAudio) {
+                    oldAudio.src = '';
+                }
+                audioPreloadCache.delete(oldest);
+            }
+        } catch (e) {
+            console.debug('Audio preload skipped:', e);
+        }
+
+        // Cache Storage API for offline persistence
+        if ('caches' in window) {
+            caches.open('quran-audio-cache-v1').then(cache => {
+                cache.match(url).then(cached => {
+                    if (!cached) {
+                        fetch(url, { mode: 'cors' })
+                            .then(res => {
+                                if (res.ok) cache.put(url, res);
+                            })
+                            .catch(() => {});
+                    }
+                });
+            }).catch(() => {});
+        }
+    }
+
+    function clearAudioPreloadCache() {
+        audioPreloadCache.forEach(a => { a.src = ''; });
+        audioPreloadCache.clear();
+    }
+
+    // ==========================================================================
     // Audio Playback Engine & Highlighting
     // ==========================================================================
     function playAyah(index) {
@@ -726,6 +795,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         DOM.audio.src = ayah.audio;
         DOM.audio.playbackRate = state.playbackRates[state.playbackRateIndex];
+
+        // Trigger smart lookahead buffer: preloads the next 3 ayahs into cache
+        preloadUpcomingAyahs(index);
 
         DOM.audio.play()
             .then(() => {
